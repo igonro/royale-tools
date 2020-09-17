@@ -1,0 +1,40 @@
+name: Continuous Integration
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Conda environment
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          miniconda-version: latest
+          auto-update-conda: true
+          python-version: 3.7
+      - name: PowerShell
+        shell: powershell
+        run: |
+          conda info
+          conda list
+      - name: Install pre-commit hook
+        shell: powershell
+        run: |
+          pip install pre-commit
+          pre-commit install
+      - name: Linting code
+        shell: powershell
+        run: pre-commit run --all-files
+      - name: Install dependencies
+        shell: powershell
+        run: pip install -r requirements.txt
+      - name: Build and install
+        shell: powershell
+        run: pip install -e .
+      - name: Tests
+        shell: powershell
+        run: pytest
