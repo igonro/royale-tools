@@ -132,4 +132,4 @@ dmypy.json
 .vscode/
 
 # royale-tools files
-royale-tools/token.txt
+.royale-tools-config
