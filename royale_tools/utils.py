@@ -102,7 +102,7 @@ class CustomWindows:
         """
         layout = [
             [sg.T("Enter a player tag")],
-            [sg.In(default_tag, key="in.player_tag"), sg.B("Ok!")],
+            [sg.In(default_tag, key="in.player_tag", size=(15, 1)), sg.B("Ok!")],
         ]
         return sg.Window(title="Player selection", layout=layout)
 
