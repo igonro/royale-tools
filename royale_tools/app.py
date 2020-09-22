@@ -36,8 +36,12 @@ class App:
             # Event handler
             if event == "Settings":
                 window.hide()
-                self.settings(mandatory=False)
-                window.un_hide()
+                refresh = self.settings(mandatory=False)
+                if refresh:
+                    window.close()
+                    window = cw.main_window()
+                else:
+                    window.un_hide()
             if event == "About":
                 window.hide()
                 self.about()
@@ -47,11 +51,14 @@ class App:
                 self.player()
                 window.un_hide()
 
-    def settings(self, mandatory: bool):
+    def settings(self, mandatory: bool) -> bool:
         """Settings behaviour.
 
         Args:
             mandatory (bool): Whether if previous settings were invalid or not.
+
+        Returns:
+            bool: Whether if the theme has changed.
         """
         config = dict(
             token=self.token,
@@ -59,7 +66,8 @@ class App:
             clan_tag=self.clan_tag,
             theme=self.theme,
         )
-        window = cw.settings_window(mandatory, config)  # pass values
+        orig_theme = self.theme
+        window = cw.settings_window(mandatory, config)
         while True:
             event, values = window.read()
             # Exit settings
@@ -78,16 +86,16 @@ class App:
                     setattr(self, key.split(".")[1], value)
                 sg.theme(self.theme)
                 self.save_config()
-                sg.popup(
-                    "Settings saved succesfully!",
-                    "Restart the app to reload theme in every window.",
-                )
+                sg.popup("Settings saved succesfully!")
                 break
             if event == "Preview theme":
                 sg.theme(values["cmb.theme"])
                 _, _ = cw.theme_sample_window().read(close=True)
                 sg.theme(self.theme)
         window.close()
+        if orig_theme != self.theme:
+            return True
+        return False
 
     def about(self):
         """About behaviour."""
