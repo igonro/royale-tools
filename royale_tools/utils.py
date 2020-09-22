@@ -229,15 +229,6 @@ class RoyaleApi:
         return RoyaleApi.get_request(url)
 
     @staticmethod
-    def get_cards_data() -> Dict:
-        """Get cards data.
-
-        Returns:
-            Dict: Cards data.
-        """
-        return RoyaleApi.get_request("https://api.clashroyale.com/v1/cards")
-
-    @staticmethod
     def get_cards_stats(
         player_info: Dict,
     ) -> Tuple[
@@ -292,7 +283,7 @@ class RoyaleApi:
         def normalize_level(level: float, max_level: int):
             return 13 - (max_level - level)
 
-        cards_data = RoyaleApi.get_cards_data()
+        cards_data = RoyaleApi.get_request("https://api.clashroyale.com/v1/cards")
         cards_number = {13: 0, 11: 0, 8: 0, 5: 0}
         gold_amount = {13: 0, 11: 0, 8: 0, 5: 0}
         card_levels: Dict[int, List[int]] = {13: [], 11: [], 8: [], 5: []}
