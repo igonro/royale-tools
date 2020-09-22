@@ -113,14 +113,29 @@ class App:
         """Player behaviour."""
         # Select player tag
         event, values = cw.select_player_window(self.player_tag).read(close=True)
+        if event == sg.WIN_CLOSED:
+            return
         tag = values["in.player_tag"]
         # Show player window
         player_info = api.get_player_info(tag)
-        window = cw.player_info_window(player_info)
+        window = cw.player_main_window(player_info)
         while True:
             event, values = window.read()
             if event == sg.WIN_CLOSED:
                 break
+            if event == "Chests":
+                chests_info = api.get_player_info(tag, "upcomingchests")
+                window.hide()
+                _, _ = cw.player_chests_window(chests_info).read(close=True)
+                window.un_hide()
+            if event == "Cards":
+                window.hide()
+                _, _ = cw.player_cards_window(player_info).read(close=True)
+                window.un_hide()
+            if event == "War":
+                window.hide()
+                _, _ = cw.player_war_window().read(close=True)
+                window.un_hide()
             if event == "Royale API":
                 open_url(f"royaleapi.com/player/{tag}")
         window.close()
