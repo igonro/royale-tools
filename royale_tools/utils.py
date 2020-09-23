@@ -182,15 +182,19 @@ class CustomWindows:
             [sg.T(f"Favorite card: {fav_card}")],
         ]
         max_level_names = {13: "Common", 11: "Rare", 8: "Epic", 5: "Legendary"}
+        frames = []
         for max_lvl, name in max_level_names.items():
             lvl_stats = stats[max_lvl]
             frame = [
                 [sg.T(f"Remaining cards: {lvl_stats['rem_cards']:n}")],
                 [sg.T(f"Remaining gold: {lvl_stats['rem_gold']:n}")],
-                [sg.T(f"Progress: {lvl_stats['progress']:.2f}%")],
-                [sg.T(f"Average level: {lvl_stats['avg_level']:.2f}")],
+                [sg.T(f"Progress: {lvl_stats['progress']:n}%")],
+                [sg.T(f"Average level: {lvl_stats['avg_level']:n}")],
             ]
-            layout.append([sg.Frame(name, frame, font="Any 15")])
+            frames.append(sg.Frame(name, frame, font="Any 15"))
+
+        layout.append([frames[0], frames[1]])
+        layout.append([frames[2], frames[3]])
 
         return sg.Window("Player's Cards", layout=layout)
 
