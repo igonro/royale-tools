@@ -4,7 +4,7 @@ import sys
 import PySimpleGUI as sg
 from loguru import logger
 from utils import CustomWindows as cw
-from utils import RoyaleApi as api
+from utils import RoyaleApi
 
 
 class App:
@@ -19,7 +19,7 @@ class App:
         self.theme = "DarkBlue3"
         # Load and apply configuration
         self.load_config()
-        api.token = self.token
+        RoyaleApi.token = self.token
         sg.theme(self.theme)
         # Start main app
         self.main()
@@ -86,7 +86,7 @@ class App:
                     setattr(self, key.split(".")[1], value)
                 sg.theme(self.theme)
                 self.save_config()
-                sg.popup("Settings saved succesfully!")
+                sg.popup("Settings saved succesfully!", title="Settings")
                 break
             if event == "Preview theme":
                 sg.theme(values["cmb.theme"])
@@ -120,25 +120,26 @@ class App:
     def player(self):
         """Player behaviour."""
         # Select player tag
-        event, values = cw.select_player_window(self.player_tag).read(close=True)
+        event, values = cw.player_tag_window(self.player_tag).read(close=True)
         if event == sg.WIN_CLOSED:
             return
         tag = values["in.player_tag"]
-        # Show player window
-        player_info = api.get_player_info(tag)
-        window = cw.player_main_window(player_info)
+        # Pre-load data
+        player_data = RoyaleApi.get_player_data(tag)
+        chests_data = RoyaleApi.get_player_data(tag, "upcomingchests")
+        # Window
+        window = cw.player_main_window(player_data)
         while True:
             event, values = window.read()
             if event == sg.WIN_CLOSED:
                 break
             if event == "Chests":
-                chests_info = api.get_player_info(tag, "upcomingchests")
                 window.hide()
-                _, _ = cw.player_chests_window(chests_info).read(close=True)
+                _, _ = cw.player_chests_window(chests_data).read(close=True)
                 window.un_hide()
             if event == "Cards":
                 window.hide()
-                _, _ = cw.player_cards_window(player_info).read(close=True)
+                _, _ = cw.player_cards_window(player_data).read(close=True)
                 window.un_hide()
             if event == "War":
                 window.hide()

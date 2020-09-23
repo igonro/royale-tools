@@ -1,6 +1,8 @@
 import locale
-from typing import Any, Dict, List, Optional, Tuple
+from copy import deepcopy as dc
+from typing import Any, Dict, Optional
 
+import numpy as np
 import pkg_resources
 import PySimpleGUI as sg
 import requests
@@ -94,8 +96,8 @@ class CustomWindows:
         return sg.Window(title="About", layout=layout)
 
     @staticmethod
-    def select_player_window(default_tag: str) -> sg.Window:
-        """Select player window.
+    def player_tag_window(default_tag: str) -> sg.Window:
+        """Player tag selection window.
 
         Args:
             default_tag (str): Default player tag.
@@ -104,39 +106,44 @@ class CustomWindows:
             [sg.T("Enter a player tag")],
             [sg.In(default_tag, key="in.player_tag", size=(15, 1)), sg.B("Ok!")],
         ]
-        return sg.Window(title="Player selection", layout=layout)
+        return sg.Window(title="Player", layout=layout)
 
     @staticmethod
-    def player_main_window(info: Dict) -> sg.Window:
-        """Player info window.
+    def player_main_window(data: Dict) -> sg.Window:
+        """Player main window.
 
         Args:
-            info (Dict): Dictionary with information.
+            data (Dict): Dictionary with player information.
         """
-        try:
-            winrate = f"{100.0 * info['wins'] / (info['wins'] + info['losses']):.2f}%"
-        except Exception:
-            winrate = "Error!"
+
+        def get_winrate(n_losses: int, n_wins: int):
+            try:
+                return f"{100.0 * n_wins / (n_wins + n_losses):.2f}%"
+            except Exception:
+                return "Not available"
+
         generic = [
-            [sg.T(f"Name: {info['name']}")],
-            [sg.T(f"Arena: {info['arena']['name']}")],
-            [sg.T(f"Winrate: {winrate}")],
-            [sg.T(f"War day wins: {info['warDayWins']}")],
-            [sg.T(f"Challenge max wins: {info['challengeMaxWins']}")],
-            [sg.T(f"{info['role'].capitalize()} in {info['clan']['name']}")],
-            [sg.T(f"Donations given: {info['donations']}")],
-            [sg.T(f"Donations received: {info['donationsReceived']}")],
+            [sg.T(f"Name: {data['name']}")],
+            [sg.T(f"Tag: {data['tag']}")],
+            [sg.T(f"Arena: {data['arena']['name']}")],
+            [sg.T(f"Winrate: {get_winrate(data['losses'], data['wins'])}")],
+            [sg.T(f"War day wins: {data['warDayWins']}")],
+            [sg.T(f"Challenge max wins: {data['challengeMaxWins']}")],
+            [sg.T(f"{data['role'].capitalize()} in {data['clan']['name']}")],
+            [sg.T(f"Donations sent: {data['donations']}")],
+            [sg.T(f"Donations received: {data['donationsReceived']}")],
         ]
-        stats = info["leagueStatistics"]
+
+        stats = data["leagueStatistics"]
         trophies = [
             [sg.T("Current season:")],
-            [sg.T(f"  Trophies: {stats['currentSeason']['trophies']}")],
-            [sg.T(f"  Best: {stats['currentSeason']['bestTrophies']}")],
+            [sg.T(f" + Trophies: {stats['currentSeason']['trophies']}")],
+            [sg.T(f" + Best: {stats['currentSeason']['bestTrophies']}")],
             [sg.T("Previous season:")],
-            [sg.T(f"  Trophies: {stats['previousSeason']['trophies']}")],
-            [sg.T(f"  Best: {stats['previousSeason']['bestTrophies']}")],
+            [sg.T(f" + Trophies: {stats['previousSeason']['trophies']}")],
+            [sg.T(f" + Best: {stats['previousSeason']['bestTrophies']}")],
             [sg.T("Best season:")],
-            [sg.T(f"  Best: {stats['bestSeason']['trophies']}")],
+            [sg.T(f" + Best: {stats['bestSeason']['trophies']}")],
         ]
         layout = [
             [
@@ -145,47 +152,47 @@ class CustomWindows:
             ],
             [sg.B("Chests"), sg.B("Cards"), sg.B("War"), sg.B("Royale API")],
         ]
-        return sg.Window(title=f"{info['tag']} info", layout=layout)
+        return sg.Window(title="Player", layout=layout)
 
     @staticmethod
-    def player_chests_window(info: Dict) -> sg.Window:
+    def player_chests_window(data: Dict) -> sg.Window:
         """Player chests window.
 
         Args:
-            info (Dict): Dictionary with information.
+            data (Dict): Dictionary with chests information.
         """
         upcoming = []
-        for chest in info["items"]:
-            upcoming.append([sg.T(f"+{chest['index']+1} to get {chest['name']}")])
+        for chest in data["items"]:
+            upcoming.append([sg.T(f"+{chest['index']+1}:\t{chest['name']}")])
         layout = [[sg.Frame("Upcoming chests", upcoming, font="Any 15")]]
-        return sg.Window("Player chests", layout=layout)
+        return sg.Window("Player's Chests", layout=layout)
 
     @staticmethod
-    def player_cards_window(info: Dict) -> sg.Window:
+    def player_cards_window(data: Dict) -> sg.Window:
         """Player cards window.
 
         Args:
-            info (Dict): Dictionary with information.
+            data (Dict): Dictionary with player information.
         """
-        number, gold, obtained, progress, levels, avg = RoyaleApi.get_cards_stats(info)
+        fav_card = data["currentFavouriteCard"]["name"]
+        stats = RoyaleApi.get_cards_stats(data["cards"])
+        n_collected, n_all = stats.pop("collected")
         layout = [
-            [sg.T(f"Obtained cards: {obtained[0]}/{obtained[1]}")],
-            [sg.T(f"Favorite card: {info['currentFavouriteCard']['name']}")],
-            [sg.T(f"Average level: {avg:.2f}")],
+            [sg.T(f"Obtained cards: {n_collected}/{n_all}")],
+            [sg.T(f"Favorite card: {fav_card}")],
         ]
         max_level_names = {13: "Common", 11: "Rare", 8: "Epic", 5: "Legendary"}
-        for max_level in (13, 11, 8, 5):
-            frame_layout = [
-                [sg.T(f"Remaining cards: {number[max_level]:n}")],
-                [sg.T(f"Remaining gold: {gold[max_level]:n}")],
-                [sg.T(f"Progress: {progress[max_level]:.2f}%")],
-                [sg.T(f"Average level: {levels[max_level]:.2f}")],
+        for max_lvl, name in max_level_names.items():
+            lvl_stats = stats[max_lvl]
+            frame = [
+                [sg.T(f"Remaining cards: {lvl_stats['rem_cards']:n}")],
+                [sg.T(f"Remaining gold: {lvl_stats['rem_gold']:n}")],
+                [sg.T(f"Progress: {lvl_stats['progress']:.2f}%")],
+                [sg.T(f"Average level: {lvl_stats['avg_level']:.2f}")],
             ]
-            layout.append(
-                [sg.Frame(max_level_names[max_level], frame_layout, font="Any 15")]
-            )
+            layout.append([sg.Frame(name, frame, font="Any 15")])
 
-        return sg.Window("Player cards", layout=layout)
+        return sg.Window("Player's Cards", layout=layout)
 
 
 class RoyaleApi:
@@ -212,15 +219,15 @@ class RoyaleApi:
         return req.json()
 
     @staticmethod
-    def get_player_info(tag: str, query: str = "") -> Dict:
-        """Get player info.
+    def get_player_data(tag: str, query: str = "") -> Dict:
+        """Get player data.
 
         Args:
             tag (str): Player tag.
             query (str): Query type. Defaults to "".
 
         Returns:
-            Dict: Player info in JSON format.
+            Dict: Player data in JSON format.
         """
         if not tag.startswith("#"):
             tag = "#" + tag
@@ -229,91 +236,58 @@ class RoyaleApi:
         return RoyaleApi.get_request(url)
 
     @staticmethod
-    def get_cards_stats(
-        player_info: Dict,
-    ) -> Tuple[
-        Dict[int, int],
-        Dict[int, int],
-        Tuple[int, int],
-        Dict[Any, Any],
-        Dict[Any, Any],
-        float,
-    ]:
+    def get_cards_stats(player_cards: Dict) -> Dict:
         """Get cards stats.
 
         Args:
-            player_info (Dict): Player info in JSON format.
+            player_cards (Dict): Player cards in JSON format.
 
         Returns:
-            Cards stats.
+            Dict: Cards stats.
         """
-
-        def get_remaining_gold(level: int, max_level: int):
-            # Return 0 if maxed
-            if level == max_level:
-                return 0
-            gold_tiers = [
-                100000,
-                50000,
-                20000,
-                8000,
-                4000,
-                2000,
-                1000,
-                400,
-                150,
-                50,
-                20,
-                5,
-                0,
-            ]
-            if max_level == 5:
-                gold_tiers[3] = 5000
-            if max_level == 8:
-                gold_tiers[6] = 400
-            return sum(gold_tiers[: max_level - level])
 
         def get_remaining_cards(level: int, max_level: int, count: int):
             # Return 0 if maxed
             if level == max_level:
                 return 0
-            card_tiers = [1, 2, 4, 10, 20, 50, 100, 200, 400, 800, 1000, 2000, 5000]
-            return sum(card_tiers[level:max_level]) - count
+            n_cards = [1, 2, 4, 10, 20, 50, 100, 200, 400, 800, 1000, 2000, 5000]
+            return sum(n_cards[level:max_level]) - count
 
-        def normalize_level(level: float, max_level: int):
-            return 13 - (max_level - level)
+        def get_remaining_gold(level: int, max_level: int):
+            # Return 0 if maxed
+            if level == max_level:
+                return 0
+            n_gold = [100000, 50000, 20000, 8000, 4000, 2000, 1000, 400, 150, 50, 20, 5]
+            if max_level == 5:
+                n_gold.append(0)
+                n_gold[3] = 5000
+            if max_level == 8:
+                n_gold[6] = 400
+            return sum(n_gold[: max_level - level])
 
-        cards_data = RoyaleApi.get_request("https://api.clashroyale.com/v1/cards")
-        cards_number = {13: 0, 11: 0, 8: 0, 5: 0}
-        gold_amount = {13: 0, 11: 0, 8: 0, 5: 0}
-        card_levels: Dict[int, List[int]] = {13: [], 11: [], 8: [], 5: []}
-        sum_level = 0
-        obtained_cards = set()
+        empty = {"rem_cards": 0, "rem_gold": 0, "levels": []}
+        stats = {13: dc(empty), 11: dc(empty), 8: dc(empty), 5: dc(empty)}
+        collected = set()
 
-        for card in player_info["cards"]:
-            obtained_cards.add(card["name"])
-            level, max_level, count = card["level"], card["maxLevel"], card["count"]
-            cards_number[max_level] += get_remaining_cards(level, max_level, count)
-            gold_amount[max_level] += get_remaining_gold(level, max_level)
-            card_levels[max_level].append(level)
-            sum_level += normalize_level(level, max_level)
+        for card in player_cards:
+            collected.add(card["name"])
+            lvl, max_lvl, cnt = card["level"], card["maxLevel"], card["count"]
+            stats[max_lvl]["rem_cards"] += get_remaining_cards(lvl, max_lvl, cnt)
+            stats[max_lvl]["rem_gold"] += get_remaining_gold(lvl, max_lvl)
+            stats[max_lvl]["levels"].append(lvl)  # type: ignore
 
-        total = 0
-        for card in cards_data["items"]:
-            total += 1
-            if not card["name"] in obtained_cards:
-                max_level = card["maxLevel"]
-                cards_number[max_level] += get_remaining_cards(0, max_level, 0)
-                gold_amount[max_level] += get_remaining_gold(0, max_level)
-                card_levels[max_level].append(0)
+        all_cards = RoyaleApi.get_request("https://api.clashroyale.com/v1/cards")
+        for card in all_cards["items"]:
+            if card["name"] not in collected:
+                lvl, max_lvl, cnt = 0, card["maxLevel"], 0
+                stats[max_lvl]["rem_cards"] += get_remaining_cards(lvl, max_lvl, cnt)
+                stats[max_lvl]["rem_gold"] += get_remaining_gold(lvl, max_lvl)
+                stats[max_lvl]["levels"].append(lvl)  # type: ignore
 
-        avg_level = float(sum_level) / total
-        obtained = (len(obtained_cards), total)
-        card_progress, avg_levels = {}, {}
-        for max_level, levels in card_levels.items():
-            card_progress[max_level] = 100.0 * sum(levels) / (max_level * len(levels))
-            avg_levels[max_level] = normalize_level(
-                float(sum(levels)) / len(levels), max_level
-            )
+        stats["collected"] = (len(collected), len(all_cards["items"]))  # type: ignore
+        for max_lvl in (13, 11, 8, 5):
+            levels = stats[max_lvl]["levels"]
+            stats[max_lvl]["progress"] = np.array(levels).mean() * (100.0 / max_lvl)
+            stats[max_lvl]["avg_level"] = np.array(levels).mean() + (13 - max_lvl)
 
-        return cards_number, gold_amount, obtained, card_progress, avg_levels, avg_level
+        return stats
