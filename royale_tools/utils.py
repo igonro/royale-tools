@@ -1,4 +1,5 @@
 import locale
+import sys
 from copy import deepcopy as dc
 from typing import Any, Dict, Optional
 
@@ -218,7 +219,26 @@ class RoyaleApi:
             "Accept": "application/json",
             "authorization": f"Bearer {RoyaleApi.token}",
         }
-        req = requests.get(url, headers=headers, params=params)
+        req = None
+        try:
+            req = requests.get(url, headers=headers, params=params)
+
+            if req.status_code != 200:
+                raise ConnectionError
+
+        except Exception:
+            code_info = "" if not req else f"(code: {req.status_code})"
+            sg.popup_error(
+                f"Couldn't get API data! {code_info}",
+                "This application can't work without API data.",
+                "Common errors:",
+                " - Internet connection error",
+                " - Invalid API token",
+                " - Invalid player/clan tag",
+                "Please, check these issues and try again.",
+                title="API error",
+            )
+            sys.exit()
 
         return req.json()
 

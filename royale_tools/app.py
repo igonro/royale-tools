@@ -85,6 +85,7 @@ class App:
                         value = None
                     setattr(self, key.split(".")[1], value)
                 sg.theme(self.theme)
+                RoyaleApi.token = self.token
                 self.save_config()
                 sg.popup("Settings saved succesfully!", title="Settings")
                 break
