@@ -9,21 +9,20 @@
 a. Create a conda virtual environment and activate it.
 
 ```shell
-conda create -n royale-tools python=3.7 -y
+git clone https://github.com/igonro/royale-tools.git
+cd royale-tools
+conda env create -f conda.yaml
 conda activate royale-tools
 ```
 
 b. Install royale-tools
 
 ```shell
-git clone https://github.com/igonro/royale-tools.git
-cd royale-tools
-pip install -v -e .
+python setup.py develop
 ```
 
-### Install royale-tools package for use (not supported yet)
+### Use royale-tools
 
 ```shell
-pip install royale-tools
-royale-tools start
+python royale_tools/app.py
 ```

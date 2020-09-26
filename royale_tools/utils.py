@@ -1,15 +1,13 @@
-import locale
+import subprocess as sp
 import sys
 from copy import deepcopy as dc
 from typing import Any, Dict, Optional
 
 import numpy as np
-import pkg_resources
 import PySimpleGUI as sg
 import requests
 
-VERSION = pkg_resources.require("royale-tools")[0].version
-locale.setlocale(locale.LC_ALL, "")
+VERSION = sp.check_output(["git", "rev-parse", "--short", "HEAD"]).decode("utf-8")
 
 
 class CustomWindows:
@@ -87,7 +85,7 @@ class CustomWindows:
                     [
                         [sg.T("Name: Royale Tools")],
                         [sg.T("Author: Iago GR")],
-                        [sg.T(f"Version: {VERSION}")],
+                        [sg.T(f"Version: {VERSION}", enable_events=True, k="version")],
                     ],
                 ),
                 sg.B("GitHub"),

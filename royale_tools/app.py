@@ -116,6 +116,11 @@ class App:
                 if item == "book":
                     price = 40
                 open_url(f"paypal.me/igonro/{price}")
+            if event == "version":
+                commit = window["version"].get().split()[1]
+                print(commit)
+                print(type(commit))
+                open_url(f"github.com/igonro/royale-tools/tree/{commit}")
         window.close()
 
     def player(self):
@@ -182,7 +187,10 @@ def open_url(url: str):
     """
     import webbrowser
 
-    webbrowser.open_new_tab(url)
+    if not url.startswith("http"):
+        url = f"https://{url}"
+
+    webbrowser.open(url)
 
 
 if __name__ == "__main__":
