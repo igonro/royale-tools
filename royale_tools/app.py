@@ -16,7 +16,7 @@ class App:
         self.player_tag = None
         self.clan_tag = None
         # Appeareance settings
-        self.theme = "DarkBlue3"
+        self.theme = "Reddit"
         # Load and apply configuration
         self.load_config()
         RoyaleApi.token = self.token

@@ -136,6 +136,13 @@ class CustomWindows:
         ]
 
         stats = data["leagueStatistics"]
+
+        if "previousSeason" not in stats:
+            stats["previousSeason"]["trophies"] = "Not found"
+            stats["previousSeason"]["bestTrophies"] = "Not found"
+        if "bestSeason" not in stats:
+            stats["bestSeason"]["trophies"] = "Not found"
+
         trophies = [
             [sg.T("Current season:")],
             [sg.T(f" + Trophies: {stats['currentSeason']['trophies']}")],
