@@ -75,9 +75,12 @@ class CustomWindows:
                 sg.Frame(
                     "Description",
                     [
-                        [sg.T("Royale Tools is a clan management")],
-                        [sg.T("python application. If you have any")],
-                        [sg.T("problem, open a new issue in GitHub!")],
+                        [
+                            sg.T(
+                                "Royale Tools is a clan management\npython application."
+                                "If you have any\nproblem, open a new issue in GitHub!"
+                            )
+                        ],
                     ],
                 )
             ],
