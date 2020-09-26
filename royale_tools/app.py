@@ -116,11 +116,6 @@ class App:
                 if item == "book":
                     price = 40
                 open_url(f"paypal.me/igonro/{price}")
-            if event == "version":
-                commit = window["version"].get().split()[1]
-                print(commit)
-                print(type(commit))
-                open_url(f"github.com/igonro/royale-tools/tree/{commit}")
         window.close()
 
     def player(self):
