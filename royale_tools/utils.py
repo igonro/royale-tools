@@ -95,7 +95,7 @@ class CustomWindows:
         layout = [
             [cw.F("Description", [[sg.T(desc, size=(30, 3), justification="c")]])],
             [cw.F("Project information", info), sg.B("GitHub")],
-            [cw.F("Donations", [[sg.T("Buy me a..."), selector, sg.B("Buy")]])],
+            [cw.F("Donations", [[sg.T("Buy me a..."), selector, sg.B("PayPal")]])],
             [sg.B("\u2190")],
         ]
         return sg.Window(TITLE, layout)
@@ -112,6 +112,16 @@ class CustomWindows:
             [sg.In(default_tag, key="in.player_tag", size=(20, 1)), sg.B("OK")],
         ]
         return sg.Window(TITLE, layout)
+
+    @staticmethod
+    def progress_window(max_prog: Optional[int] = 100) -> sg.Window:
+        """Progress window.
+
+        Args:
+            max_prog (int): Maximum progress. Defaults to 100.
+        """
+        layout = [[sg.ProgressBar(max_prog, orientation="h", size=(20, 20), k="pbar")]]
+        return sg.Window(TITLE, layout, no_titlebar=True)
 
     @staticmethod
     def player_main_window(data: Dict) -> sg.Window:
@@ -184,15 +194,15 @@ class CustomWindows:
         return sg.Window(TITLE, layout)
 
     @staticmethod
-    def player_cards_window(data: Dict) -> sg.Window:
+    def player_cards_window(data: Dict, stats: Dict) -> sg.Window:
         """Player cards window.
 
         Args:
             data (Dict): Dictionary with player information.
+            stats (Dict): Dictionary with cards stats.
         """
         fav_card = data["currentFavouriteCard"]["name"]
-        stats = RoyaleApi.get_cards_stats(data["cards"])
-        n_collected, n_all = stats.pop("collected")
+        n_collected, n_all = stats["collected"]
         layout = [
             [sg.T(f"Obtained cards: {n_collected}/{n_all}")],
             [sg.T(f"Favorite card: {fav_card}")],

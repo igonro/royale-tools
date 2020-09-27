@@ -110,7 +110,7 @@ class App:
                 break
             if event == "GitHub":
                 open_url("github.com/igonro/royale-tools")
-            if event == "Buy":
+            if event == "PayPal":
                 item = values["cmb.item"]
                 if item == "coffee":
                     price = 2.5
@@ -129,8 +129,15 @@ class App:
             return
         tag = values["in.player_tag"]
         # Pre-load data
+        prog_window = cw.progress_window(3)
+        _, _ = prog_window.read(timeout=0)
         player_data = RoyaleApi.get_player_data(tag)
+        prog_window["pbar"].update_bar(1)
+        cards_data = RoyaleApi.get_cards_stats(player_data["cards"])
+        prog_window["pbar"].update_bar(2)
         chests_data = RoyaleApi.get_player_data(tag, "upcomingchests")
+        prog_window["pbar"].update_bar(3)
+        prog_window.close()
         # Window
         window = cw.player_main_window(player_data)
         while True:
@@ -147,7 +154,7 @@ class App:
                 window.un_hide()
             if event == "Cards":
                 window.hide()
-                e, _ = cw.player_cards_window(player_data).read(close=True)
+                e, _ = cw.player_cards_window(player_data, cards_data).read(close=True)
                 if e == sg.WINDOW_CLOSED:
                     sys.exit()
                 window.un_hide()
