@@ -70,31 +70,16 @@ class CustomWindows:
         """About window."""
         items = ["coffee", "meal", "book"]
         selector = sg.Combo(items, "coffee", key="cmb.item")
+        desc = "Royale Tools is a clan management\npython application."
+        "If you have any\nproblem, open a new issue in GitHub!"
+        info = [
+            [sg.T("Name: Royale Tools")],
+            [sg.T("Author: Iago GR")],
+            [sg.T(f"Version: {VERSION}")],
+        ]
         layout = [
-            [
-                sg.Frame(
-                    "Description",
-                    [
-                        [
-                            sg.T(
-                                "Royale Tools is a clan management\npython application."
-                                "If you have any\nproblem, open a new issue in GitHub!"
-                            )
-                        ],
-                    ],
-                )
-            ],
-            [
-                sg.Frame(
-                    "Project information",
-                    [
-                        [sg.T("Name: Royale Tools")],
-                        [sg.T("Author: Iago GR")],
-                        [sg.T(f"Version: {VERSION}")],
-                    ],
-                ),
-                sg.B("GitHub"),
-            ],
+            [sg.Frame("Description", [[sg.T(desc)]])],
+            [sg.Frame("Project information", info), sg.B("GitHub")],
             [sg.Frame("Donations", [[sg.T("Buy me a..."), selector, sg.B("Buy")]])],
         ]
         return sg.Window(title="About", layout=layout)
