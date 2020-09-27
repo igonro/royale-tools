@@ -21,6 +21,7 @@ class App:
         self.load_config()
         RoyaleApi.token = self.token
         sg.theme(self.theme)
+        sg.SetOptions(font="Any 11")
         # Start main app
         self.main()
 
@@ -71,10 +72,10 @@ class App:
         while True:
             event, values = window.read()
             # Exit settings
-            if mandatory and event in ("Exit", sg.WIN_CLOSED):
+            if event in ("Exit", sg.WIN_CLOSED):
                 sys.exit()
             # Close window
-            if not mandatory and event in ("Cancel", sg.WIN_CLOSED):
+            if event == "Cancel":
                 break
             if event == "Save":
                 if not values["in.token"]:
@@ -104,6 +105,8 @@ class App:
         while True:
             event, values = window.read()
             if event == sg.WIN_CLOSED:
+                sys.exit()
+            if event == "\u2190":
                 break
             if event == "GitHub":
                 open_url("github.com/igonro/royale-tools")
@@ -133,18 +136,26 @@ class App:
         while True:
             event, values = window.read()
             if event == sg.WIN_CLOSED:
+                sys.exit()
+            if event == "\u2190":
                 break
             if event == "Chests":
                 window.hide()
-                _, _ = cw.player_chests_window(chests_data).read(close=True)
+                e, _ = cw.player_chests_window(chests_data).read(close=True)
+                if e == sg.WINDOW_CLOSED:
+                    sys.exit()
                 window.un_hide()
             if event == "Cards":
                 window.hide()
-                _, _ = cw.player_cards_window(player_data).read(close=True)
+                e, _ = cw.player_cards_window(player_data).read(close=True)
+                if e == sg.WINDOW_CLOSED:
+                    sys.exit()
                 window.un_hide()
             if event == "War":
                 window.hide()
-                _, _ = cw.player_war_window().read(close=True)
+                e, _ = cw.player_war_window().read(close=True)
+                if e == sg.WINDOW_CLOSED:
+                    sys.exit()
                 window.un_hide()
             if event == "Royale API":
                 open_url(f"royaleapi.com/player/{tag}")

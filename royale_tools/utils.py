@@ -1,9 +1,9 @@
 import locale
+import statistics as st
 import sys
 from copy import deepcopy as dc
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Iterable, Optional
 
-import numpy as np
 import pkg_resources
 import PySimpleGUI as sg
 import requests
@@ -11,16 +11,29 @@ import requests
 VERSION = pkg_resources.require("royale-tools")[0].version
 locale.setlocale(locale.LC_ALL, "")
 
+TITLE = "Royale Tools"
+MIN_SIZE = (320, 180)
+THEMES = (
+    "BlueMono|Dark|DarkAmber|DarkTeal2|GreenMono|LightYellow|Reddit|"
+    "Reds|SandyBeach|SystemDefault|TealMono|Topanga"
+)
+
 
 class CustomWindows:
     @staticmethod
+    def F(*args: Any, **kwargs: Any) -> sg.Frame:
+        """Custom sg.Frame implementation."""
+        return sg.Frame(*args, **kwargs, font="Any 14 bold")
+
+    @staticmethod
     def main_window() -> sg.Window:
         """Main window."""
+        b_size = (10, 1)
         layout = [
-            [sg.B("Player"), sg.B("Clan")],
-            [sg.B("Settings"), sg.B("About"), sg.Exit()],
+            [sg.B("Player", size=b_size), sg.B("Clan", size=b_size)],
+            [sg.B("Settings", size=b_size), sg.B("About", size=b_size)],
         ]
-        return sg.Window(title="Royale Tools", layout=layout)
+        return sg.Window(TITLE, layout, element_justification="c", font="Any 15")
 
     @staticmethod
     def settings_window(mandatory: bool, config: Dict[str, str]) -> sg.Window:
@@ -41,7 +54,7 @@ class CustomWindows:
             [sg.T("Theme")],
             [
                 sg.Combo(
-                    sg.theme_list(),
+                    THEMES.split("|"),
                     default_value=config["theme"],
                     key="cmb.theme",
                     enable_events=True,
@@ -54,7 +67,7 @@ class CustomWindows:
                 sg.B("Preview theme"),
             ],
         ]
-        return sg.Window(title="Settings", layout=layout)
+        return sg.Window(TITLE, layout)
 
     @staticmethod
     def theme_sample_window() -> sg.Window:
@@ -63,26 +76,29 @@ class CustomWindows:
             [sg.T("Text element"), sg.In("Input data here", size=(10, 1))],
             [sg.B("Ok"), sg.B("Cancel"), sg.Slider(orientation="h", size=(15, 15))],
         ]
-        return sg.Window(title=sg.theme(), layout=layout)
+        return sg.Window(sg.theme(), layout)
 
     @staticmethod
     def about_window() -> sg.Window:
         """About window."""
         items = ["coffee", "meal", "book"]
         selector = sg.Combo(items, "coffee", key="cmb.item")
-        desc = "Royale Tools is a clan management\npython application."
-        "If you have any\nproblem, open a new issue in GitHub!"
+        desc = (
+            "Royale Tools is a clan management python application."
+            "If you have any problem, open a new issue in GitHub!"
+        )
         info = [
             [sg.T("Name: Royale Tools")],
             [sg.T("Author: Iago GR")],
             [sg.T(f"Version: {VERSION}")],
         ]
         layout = [
-            [sg.Frame("Description", [[sg.T(desc)]])],
-            [sg.Frame("Project information", info), sg.B("GitHub")],
-            [sg.Frame("Donations", [[sg.T("Buy me a..."), selector, sg.B("Buy")]])],
+            [cw.F("Description", [[sg.T(desc, size=(30, 3), justification="c")]])],
+            [cw.F("Project information", info), sg.B("GitHub")],
+            [cw.F("Donations", [[sg.T("Buy me a..."), selector, sg.B("Buy")]])],
+            [sg.B("\u2190")],
         ]
-        return sg.Window(title="About", layout=layout)
+        return sg.Window(TITLE, layout)
 
     @staticmethod
     def player_tag_window(default_tag: str) -> sg.Window:
@@ -93,9 +109,9 @@ class CustomWindows:
         """
         layout = [
             [sg.T("Enter a player tag")],
-            [sg.In(default_tag, key="in.player_tag", size=(15, 1)), sg.B("Ok!")],
+            [sg.In(default_tag, key="in.player_tag", size=(20, 1)), sg.B("OK")],
         ]
-        return sg.Window(title="Player", layout=layout)
+        return sg.Window(TITLE, layout)
 
     @staticmethod
     def player_main_window(data: Dict) -> sg.Window:
@@ -143,12 +159,13 @@ class CustomWindows:
         ]
         layout = [
             [
-                sg.Frame("Generic", generic, font="Any 15"),
-                sg.Frame("Trophies", trophies, font="Any 15"),
+                cw.F("Generic", generic),
+                cw.F("Trophies", trophies),
             ],
             [sg.B("Chests"), sg.B("Cards"), sg.B("War"), sg.B("Royale API")],
+            [sg.B("\u2190")],
         ]
-        return sg.Window(title="Player", layout=layout)
+        return sg.Window(TITLE, layout)
 
     @staticmethod
     def player_chests_window(data: Dict) -> sg.Window:
@@ -160,8 +177,11 @@ class CustomWindows:
         upcoming = []
         for chest in data["items"]:
             upcoming.append([sg.T(f"+{chest['index']+1}:\t{chest['name']}")])
-        layout = [[sg.Frame("Upcoming chests", upcoming, font="Any 15")]]
-        return sg.Window("Player's Chests", layout=layout)
+        layout = [
+            [cw.F("Upcoming chests", upcoming)],
+            [sg.B("\u2190")],
+        ]
+        return sg.Window(TITLE, layout)
 
     @staticmethod
     def player_cards_window(data: Dict) -> sg.Window:
@@ -187,12 +207,13 @@ class CustomWindows:
                 [sg.T(f"Progress: {lvl_stats['progress']:n}%")],
                 [sg.T(f"Average level: {lvl_stats['avg_level']:n}")],
             ]
-            frames.append(sg.Frame(name, frame, font="Any 15"))
+            frames.append(cw.F(name, frame))
 
         layout.append([frames[0], frames[1]])
         layout.append([frames[2], frames[3]])
+        layout.append([sg.B("\u2190")])
 
-        return sg.Window("Player's Cards", layout=layout)
+        return sg.Window(TITLE, layout)
 
 
 class RoyaleApi:
@@ -305,8 +326,11 @@ class RoyaleApi:
 
         stats["collected"] = (len(collected), len(all_cards["items"]))  # type: ignore
         for max_lvl in (13, 11, 8, 5):
-            levels = stats[max_lvl]["levels"]
-            stats[max_lvl]["progress"] = np.array(levels).mean() * (100.0 / max_lvl)
-            stats[max_lvl]["avg_level"] = np.array(levels).mean() + (13 - max_lvl)
+            levels: Iterable[float] = stats[max_lvl]["levels"]  # type: ignore
+            stats[max_lvl]["progress"] = st.mean(levels) * (100.0 / max_lvl)
+            stats[max_lvl]["avg_level"] = st.mean(levels) + (13 - max_lvl)
 
         return stats
+
+
+cw = CustomWindows
