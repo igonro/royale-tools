@@ -2,7 +2,7 @@ import locale
 import statistics as st
 import sys
 from copy import deepcopy as dc
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 import pkg_resources
 import PySimpleGUI as sg
@@ -12,7 +12,6 @@ VERSION = pkg_resources.require("royale-tools")[0].version
 locale.setlocale(locale.LC_ALL, "")
 
 TITLE = "Royale Tools"
-MIN_SIZE = (320, 180)
 THEMES = (
     "BlueMono|Dark|DarkAmber|DarkTeal2|GreenMono|LightYellow|Reddit|"
     "Reds|SandyBeach|SystemDefault|TealMono|Topanga"
@@ -130,18 +129,13 @@ class CustomWindows:
         Args:
             data (Dict): Dictionary with player information.
         """
-
-        def get_winrate(n_losses: int, n_wins: int):
-            try:
-                return f"{100.0 * n_wins / (n_wins + n_losses):.2f}%"
-            except Exception:
-                return "Not available"
-
+        winrate = RoyaleApi.get_winrate(data["losses"], data["wins"])
+        winrate_text = f"{winrate:.2f}%" if winrate > 0 else "Not available"
         generic = [
             [sg.T(f"Name: {data['name']}")],
             [sg.T(f"Tag: {data['tag']}")],
             [sg.T(f"Arena: {data['arena']['name']}")],
-            [sg.T(f"Winrate: {get_winrate(data['losses'], data['wins'])}")],
+            [sg.T(f"Winrate: {winrate_text}")],
             [sg.T(f"War day wins: {data['warDayWins']}")],
             [sg.T(f"Challenge max wins: {data['challengeMaxWins']}")],
             [sg.T(f"{data['role'].capitalize()} in {data['clan']['name']}")],
@@ -212,16 +206,75 @@ class CustomWindows:
         for max_lvl, name in max_level_names.items():
             lvl_stats = stats[max_lvl]
             frame = [
-                [sg.T(f"Remaining cards: {lvl_stats['rem_cards']:n}")],
-                [sg.T(f"Remaining gold: {lvl_stats['rem_gold']:n}")],
-                [sg.T(f"Progress: {lvl_stats['progress']:n}%")],
-                [sg.T(f"Average level: {lvl_stats['avg_level']:n}")],
+                [sg.T(f"Remaining cards: {lvl_stats['rem_cards']}")],
+                [sg.T(f"Remaining gold: {lvl_stats['rem_gold']}")],
+                [sg.T(f"Progress: {lvl_stats['progress']:.2f}%")],
+                [sg.T(f"Average level: {lvl_stats['avg_level']:.2f}")],
             ]
             frames.append(cw.F(name, frame))
 
         layout.append([frames[0], frames[1]])
         layout.append([frames[2], frames[3]])
         layout.append([sg.B("\u2190")])
+
+        return sg.Window(TITLE, layout)
+
+    @staticmethod
+    def player_war_window(data: Dict, best_32: List[int], stats: Dict) -> sg.Window:
+        """Player war window.
+
+        Args:
+            data (Dict): Dictionary with player information.
+            best_32 (List): List with best 32 stats levels.
+            stats (Dict): Dictionary with war stats.
+        """
+        winrate = RoyaleApi.get_winrate(data["losses"], data["wins"]) / 100.0
+        base_fp = sum(best_32)
+        est_fp = int(winrate * (2 * base_fp) + (1 - winrate) * base_fp)
+        decks = [
+            [sg.T(f"Average level: {st.mean(best_32):.2f}")],
+            [sg.T(f"Minimum daily WP: {base_fp}")],
+            [sg.T(f"Maximum daily WP: {2 * base_fp}")],
+            [sg.T(f"Estimated daily WP: {est_fp}")],
+            [sg.HSep()],
+            [sg.T(f"Minimum war WP: {7 * base_fp}")],
+            [sg.T(f"Maximum war WP: {14 * base_fp}")],
+            [sg.T(f"Estimated war WP: {7 * est_fp}")],
+        ]
+        war_stats = [
+            [sg.T(f"Total WP: {sum(stats['war_points']):.0f}")],
+            [sg.T(f" \u21B3 FP: {sum(stats['fame_points']):.0f}")],
+            [sg.T(f" \u21B3 RP: {sum(stats['repair_points']):.0f}")],
+            [
+                sg.T(
+                    f"Average WP: {sum(stats['war_points']) / len(stats['war_points'])}"
+                )
+            ],
+        ]
+        current_war = [
+            [sg.T(f"Current WP: {stats['current_war_points']}")],
+            [sg.T(f" \u21B3 FP: {stats['current_fame_points']}")],
+            [sg.T(f" \u21B3 RP: {stats['current_repair_points']}")],
+        ]
+        h = "WP: War Points\nFP: Fame Points\nRP: Repair Points"
+        layout = [
+            [
+                sg.Col(
+                    [
+                        [
+                            cw.F("Best 32 cards", decks),
+                            sg.Col(
+                                [
+                                    [cw.F("War stats", war_stats)],
+                                    [cw.F("Current war", current_war)],
+                                ]
+                            ),
+                        ],
+                    ]
+                )
+            ],
+            [sg.B("\u2190"), sg.HSep(), sg.T("[?]", tooltip=h)],
+        ]
 
         return sg.Window(TITLE, layout)
 
@@ -286,6 +339,39 @@ class RoyaleApi:
         return RoyaleApi.get_request(url)
 
     @staticmethod
+    def get_clan_data(tag: str, query: str = "") -> Dict:
+        """Get clan data.
+
+        Args:
+            tag (str): Clan tag.
+            query (str): Query type. Defaults to "".
+
+        Returns:
+            Dict: Clan data in JSON format.
+        """
+        if not tag.startswith("#"):
+            tag = "#" + tag
+        tag = tag.replace("#", "%23")
+        url = f"https://api.clashroyale.com/v1/clans/{tag}/{query}"
+        return RoyaleApi.get_request(url)
+
+    @staticmethod
+    def get_winrate(n_losses: int, n_wins: int) -> float:
+        """Compute winrate.
+
+        Args:
+            n_losses (int): Number of losses.
+            n_wins (int): Number of wins.
+
+        Returns:
+            float: Winrate.
+        """
+        try:
+            return 100.0 * n_wins / (n_wins + n_losses)
+        except Exception:
+            return -1.0
+
+    @staticmethod
     def get_cards_stats(player_cards: Dict) -> Dict:
         """Get cards stats.
 
@@ -319,13 +405,16 @@ class RoyaleApi:
         stats = {13: dc(empty), 11: dc(empty), 8: dc(empty), 5: dc(empty)}
         collected = set()
 
+        levels = []
         for card in player_cards:
             collected.add(card["name"])
             lvl, max_lvl, cnt = card["level"], card["maxLevel"], card["count"]
             stats[max_lvl]["rem_cards"] += get_remaining_cards(lvl, max_lvl, cnt)
             stats[max_lvl]["rem_gold"] += get_remaining_gold(lvl, max_lvl)
             stats[max_lvl]["levels"].append(lvl)  # type: ignore
+            levels.append(lvl + (13 - max_lvl))
 
+        stats["best_32"] = sorted(levels, reverse=True)[:32]  # type: ignore
         all_cards = RoyaleApi.get_request("https://api.clashroyale.com/v1/cards")
         for card in all_cards["items"]:
             if card["name"] not in collected:
@@ -339,6 +428,46 @@ class RoyaleApi:
             levels: Iterable[float] = stats[max_lvl]["levels"]  # type: ignore
             stats[max_lvl]["progress"] = st.mean(levels) * (100.0 / max_lvl)
             stats[max_lvl]["avg_level"] = st.mean(levels) + (13 - max_lvl)
+
+        return stats
+
+    @staticmethod
+    def get_war_stats(player_tag: str, river_race_log: Dict, curr_river_race) -> Dict:
+        """Get war stats.
+
+        Args:
+            player_tag (str): Player tag.
+            river_race_log (Dict): Clan river race log data in JSON format.
+            curr_river_race (Dict): Clan current river race data in JSON format.
+
+        Returns:
+            Dict: War stats.
+        """
+        clan_tag = curr_river_race["clan"]["tag"]
+        stats: Dict[str, List] = {
+            "fame_points": [],
+            "repair_points": [],
+            "war_points": [],
+        }
+        for race in river_race_log["items"]:
+            for clan in race["standings"]:
+                if clan["clan"]["tag"] != clan_tag:
+                    continue
+                for player in clan["clan"]["participants"]:
+                    if player["tag"] != player_tag:
+                        continue
+                    stats["fame_points"].append(float(player["fame"]))
+                    stats["repair_points"].append(float(player["repairPoints"]))
+                    stats["war_points"].append(
+                        float(player["fame"]) + float(player["repairPoints"])
+                    )
+
+        for player in curr_river_race["clan"]["participants"]:
+            if player["tag"] != player_tag:
+                continue
+            stats["current_fame_points"] = player["fame"]
+            stats["current_repair_points"] = player["repairPoints"]
+            stats["current_war_points"] = player["fame"] + player["repairPoints"]
 
         return stats
 

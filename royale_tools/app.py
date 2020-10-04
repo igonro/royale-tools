@@ -128,8 +128,10 @@ class App:
         if event == sg.WIN_CLOSED:
             return
         tag = values["in.player_tag"]
+        if not tag.startswith("#"):
+            tag = f"#{tag}"
         # Pre-load data
-        prog_window = cw.progress_window(3)
+        prog_window = cw.progress_window(5)
         _, _ = prog_window.read(timeout=0)
         player_data = RoyaleApi.get_player_data(tag)
         prog_window["pbar"].update_bar(1)
@@ -137,6 +139,15 @@ class App:
         prog_window["pbar"].update_bar(2)
         chests_data = RoyaleApi.get_player_data(tag, "upcomingchests")
         prog_window["pbar"].update_bar(3)
+        if "clan" in player_data:
+            clan_tag = player_data["clan"]["tag"]
+            river_race_log = RoyaleApi.get_clan_data(clan_tag, "riverracelog")
+            prog_window["pbar"].update_bar(4)
+            current_river_race = RoyaleApi.get_clan_data(clan_tag, "currentriverrace")
+            war_data = RoyaleApi.get_war_stats(tag, river_race_log, current_river_race)
+        else:
+            war_data = None
+        prog_window["pbar"].update_bar(5)
         prog_window.close()
         # Window
         window = cw.player_main_window(player_data)
@@ -159,13 +170,18 @@ class App:
                     sys.exit()
                 window.un_hide()
             if event == "War":
+                if not war_data:
+                    sg.popup_error("Player must be in a clan!", title="Clan required")
+                    continue
                 window.hide()
-                e, _ = cw.player_war_window().read(close=True)
+                e, _ = cw.player_war_window(
+                    player_data, cards_data["best_32"], war_data
+                ).read(close=True)
                 if e == sg.WINDOW_CLOSED:
                     sys.exit()
                 window.un_hide()
             if event == "Royale API":
-                open_url(f"royaleapi.com/player/{tag}")
+                open_url(f"royaleapi.com/player/{tag[1:]}")
         window.close()
 
     def load_config(self):
